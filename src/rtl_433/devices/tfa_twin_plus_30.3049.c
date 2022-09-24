@@ -83,9 +83,15 @@ static int tfa_twin_plus_303049_callback(r_device *decoder, bitbuffer_t *bitbuff
   /* IIIICCII B???TTTT TTTTTSSS HHHHHHH1 XXXX */
     int negative_sign = (b[2] & 7);
     int temp          = ((rb[2]&0x1F) << 4) | (rb[1]>> 4);
+#if defined(TFA_TWINPLUS_RAIN)
+    int rain          = (rb[3] & 0x7F);
+#else
     int humidity      = (rb[3] & 0x7F) - 28;
+#endif
     int sensor_id     = (rb[0] & 0x0F) | ((rb[0] & 0xC0)>>2);
     int battery_low   = b[1] >> 7;
+    int unk1          = (b[1] >> 1) & 7;
+    int unk2          = (b[3] >> 7);
     int channel       = (b[0]>>2) & 3;
 
     float tempC = (negative_sign ? -( (1<<9) - temp ) : temp ) * 0.1F;
@@ -96,7 +102,14 @@ static int tfa_twin_plus_303049_callback(r_device *decoder, bitbuffer_t *bitbuff
             "channel",       "Channel",     DATA_INT,    channel,
             "battery_ok",    "Battery",     DATA_INT,    !battery_low,
             "temperature_C", "Temperature", DATA_FORMAT, "%.1f C", DATA_DOUBLE, tempC,
+            "unknown1",      "Unknown1",    DATA_FORMAT, "%u", DATA_INT, unk1,
+            "unknown2",      "Unknown2",    DATA_FORMAT, "%u", DATA_INT, unk2,
+            "sign",          "sign",        DATA_FORMAT, "%u", DATA_INT, negative_sign,
+#if defined(TFA_TWINPLUS_RAIN)
+            "rain",           "Rain",    DATA_FORMAT, "%u", DATA_INT, rain,
+#else
             "humidity",      "Humidity",    DATA_FORMAT, "%u %%", DATA_INT, humidity,
+#endif
             "mic",           "Integrity",   DATA_STRING, "CHECKSUM",
             NULL);
     decoder_output_data(decoder, data);
